@@ -10,19 +10,22 @@ import UIKit
 import RealmSwift
 import UserNotifications
 
-class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, UISearchBarDelegate {
 
     
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     
     let realm = try! Realm()  // ←追加
     
     // DB内のタスクが格納されるリスト。
     // 日付近い順\順でソート：降順
     // 以降内容をアップデートするとリスト内は自動的に更新される。
-    let taskArray = try! Realm().objects(Task.self).sorted(byProperty: "date", ascending: false)   // ←追加
-
     
+  
+    
+    var taskArray = try! Realm().objects(Task.self).sorted(byProperty: "date", ascending: false)   // ←追加
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,6 +33,15 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         
         tableView.delegate = self
         tableView.dataSource = self
+        
+        //デリゲート先を自分に設定する。
+        searchBar.delegate = self
+        
+        //何も入力されていなくてもReturnキーを押せるようにする。
+        searchBar.enablesReturnKeyAutomatically = false
+        
+       
+
     }
 
     override func didReceiveMemoryWarning() {
@@ -37,22 +49,26 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         // Dispose of any resources that can be recreated.
     }
     
+    
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return taskArray.count  
-    }
+             return taskArray.count
+                     }
+    
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         // 再利用可能な cell を得る
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
         
-        let task = taskArray[indexPath.row]
-        cell.textLabel?.text = task.title
+                   let task = taskArray[indexPath.row]
+            cell.textLabel?.text = task.title
+            
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm"
+            
+            let dateString:String = formatter.string(from: task.date as Date)
+            cell.detailTextLabel?.text = dateString
         
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        
-        let dateString:String = formatter.string(from: task.date as Date)
-        cell.detailTextLabel?.text = dateString
         
         return cell
     }
@@ -116,11 +132,31 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         tableView.reloadData()
     }
     
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.endEditing(true)
+        
+        if(searchBar.text != ""){
+            //検索文字列を含むデータを検索結果配列に追加する。
+            let predicate = NSPredicate(format: "category = %@", searchBar.text!)
+            taskArray = try! Realm().objects(Task).filter(predicate)
+        }else{
+            taskArray = try! Realm().objects(Task.self).sorted(byProperty: "date", ascending: false)
+        }
+        
+        //テーブルを再読み込みする。
+        tableView.reloadData()
+    }
+}
+    
+
+    
+    
+    
    
    
        
     
     
 
-}
+
 
